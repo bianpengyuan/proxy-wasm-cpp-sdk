@@ -24,7 +24,20 @@ Create a directory with your WORKSPACE file, source files, and BUILD files:
 WORKSPACE file (WORKSPACE):
 
 ```
+workspace(name = "my_extension")
 
+local_repository(
+    name = "proxy_wasm_cpp_sdk",
+    path = "/home/bianpengyuan_google_com/workspace/proxy-wasm-cpp-sdk",
+)
+
+load("@proxy_wasm_cpp_sdk//bazel/dep:deps.bzl", "wasm_dependencies")
+
+wasm_dependencies()
+
+load("@proxy_wasm_cpp_sdk//bazel/dep:deps_extra.bzl", "wasm_dependencies_extra")
+
+wasm_dependencies_extra()
 ```
 
 Source file (myproject.cc):
@@ -57,7 +70,17 @@ void ExampleContext::onDone() { logInfo("onDone " + std::to_string(id())); }
 BUILD file (BUILD):
 
 ```
+load("@proxy_wasm_cpp_sdk//bazel/wasm:wasm.bzl", "wasm_cc_binary")
 
+wasm_cc_binary(
+    name = "my_extension.wasm",
+    srcs = [
+        "source.cc",
+    ],
+    deps = [
+        "@proxy_wasm_cpp_sdk//:proxy_wasm_intrinsics",
+    ],
+)
 ```
 
 ### Compiling with the Docker build image
@@ -65,20 +88,8 @@ BUILD file (BUILD):
 Run docker:
 
 ```bash
-docker run -v $PWD:/work -w /work  wasmsdk:v2 /build_wasm.sh
+docker run -v $PWD:/work -w /work wasmsdk bazel build //...
 ```
-
-### Caching the standard libraries
-
-The first time that emscripten runs it will generate the standard libraries.  To cache these in the docker image,
-after the first successful compilation (e.g myproject.cc above), commit the image with the standard libraries:
-
-```bash
-docker commit `docker ps -l | grep wasmsdk:v2 | awk '{print $1}'` wasmsdk:v2
-```
-
-This will save time on subsequent compiles.
-
 
 [build-badge]: https://github.com/proxy-wasm/proxy-wasm-cpp-sdk/workflows/C++/badge.svg?branch=master
 [build-link]: https://github.com/proxy-wasm/proxy-wasm-cpp-sdk/actions?query=workflow%3AC%2B%2B+branch%3Amaster
